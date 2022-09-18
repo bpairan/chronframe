@@ -1,17 +1,16 @@
-package com.bpairan.chronframe.csv
+package com.bpairan.chronframe.parser.csv
 
-import cats.data.ValidatedNel
-import cats.implicits._
+import com.bpairan.chronframe.parser.{LineParseError, ParserErrorOr}
 
 import scala.collection.mutable
+import cats.implicits._
 
 /**
  * Created by Bharathi Pairan on 03/04/2022.
  */
 object CsvParser {
 
-
-  def parse(idx: Int, line: String, separator: Char, escape: Char): CsvParserErrorOr[Seq[String]] = {
+  def parse(idx: Int, line: String, separator: Char, escape: Char): ParserErrorOr[Seq[String]] = {
     var startQuote = false
     var endQuote = false
     val builder = new mutable.StringBuilder(line.length)
@@ -43,7 +42,7 @@ object CsvParser {
       }
       result.toSeq.validNel
     } catch {
-      case t: Throwable => FileParseError(idx, t.getMessage).invalidNel
+      case t: Throwable => LineParseError(idx, t.getMessage).invalidNel
     }
   }
 }
