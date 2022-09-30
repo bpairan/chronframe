@@ -57,6 +57,5 @@ object ValueConverter {
       case Some(boolVal) if FalseValues.contains(boolVal) => Some(false)
       case _ => None
     }
-
   }
 }

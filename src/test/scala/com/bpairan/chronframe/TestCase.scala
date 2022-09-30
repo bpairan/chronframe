@@ -22,3 +22,7 @@ trait TestCase {
   }
 
 }
+
+object TestCase extends TestCase {
+  def instance: TestCase.type = this
+}

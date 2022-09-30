@@ -1,8 +1,8 @@
 package com.bpairan.chronframe
 
 import com.bpairan.chronframe.ChronFrameRow.TailerToChronFrameRowConverter
-import com.bpairan.chronframe.parser.csv.CsvFileChronParser
 import com.bpairan.chronframe.parser.WriteData.WireOutOps
+import com.bpairan.chronframe.parser.csv.CsvFileChronParser
 import com.bpairan.chronframe.parser.{ParserErrorOr, WriteData}
 import net.openhft.chronicle.core.OS
 import net.openhft.chronicle.core.io.IOTools
@@ -11,6 +11,7 @@ import net.openhft.chronicle.queue.{ChronicleQueue, ExcerptAppender, ExcerptTail
 
 import java.nio.file.Path
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
@@ -32,6 +33,8 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
   }
 
   def columns: Seq[String] = columnIndexes.headOption.map(list => list.map(ci => ci.column)).getOrElse(Seq.empty)
+
+  def listOfColumns: java.util.List[String] = columns.asJava
 
   /**
    * Renames existing column in [[columnIndexes]]
@@ -56,6 +59,10 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
     this
   }
 
+  def rename(nameMap: java.util.Map[String, String]): ChronFrame = {
+    rename(nameMap.asScala.toMap)
+  }
+
   /**
    * Drops the requested columns from all the rows in [[columnIndexes]], does not remove the columns from the underlying storage
    *
@@ -65,6 +72,10 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
   def drop(columns: String*): ChronFrame = {
     val newIndexes = columnIndexes.map(columnIndexes => columnIndexes.filterNot(ci => columns.contains(ci.column)))
     this.copy(columnIndexes = newIndexes)
+  }
+
+  def drop(columns: java.util.List[String]): ChronFrame = {
+    drop(columns.asScala.toSeq: _*)
   }
 
   /**
@@ -82,6 +93,10 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
     this.copy(columnIndexes = appendedColumnIndexes)
   }
 
+  def appendColumn(columnName: String, data: java.util.List[Object]): ChronFrame = {
+    appendColumn(columnName, data.asScala.toSeq)
+  }
+
   /**
    * Add new row to the Frame
    *
@@ -92,9 +107,17 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
     this.copy(columnIndexes = columnIndexes :+ _addRow(data))
   }
 
+  def addRow(data: java.util.Map[String, Object]): ChronFrame = {
+    addRow(data.asScala.toMap)
+  }
+
   def addRows(iterator: Iterable[Map[String, Any]]): ChronFrame = {
     val newRows = iterator.foldLeft(List[List[ColumnIndex]]()) { case (result, data) => result :+ _addRow(data) }
     this.copy(columnIndexes = columnIndexes ++ newRows)
+  }
+
+  def addRows(list: java.util.List[java.util.Map[String, Object]]): ChronFrame = {
+    addRows(list.asScala.map(_.asScala.toMap))
   }
 
   private def _addRow(data: Map[String, Any]): List[ColumnIndex] = {
@@ -113,6 +136,8 @@ case class ChronFrame private(columnIndexes: List[List[ColumnIndex]], queue: Chr
 }
 
 object ChronFrame {
+
+  def instance: ChronFrame.type = this
 
   def newChronicleQueue(name: String, path: Option[Path] = None): ChronicleQueue = {
     val basePath = path.map(_.toString).getOrElse(s"${OS.getTarget}/$name")
